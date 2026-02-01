@@ -1,0 +1,6 @@
+SVG_RESOURCES = {
+    "locomotive": '''<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="30" width="70" height="25" fill="#2C3E50" rx="2"/><rect x="55" y="10" width="25" height="30" fill="#E74C3C" rx="2"/><circle cx="25" cy="55" r="7" fill="#333"/><circle cx="65" cy="55" r="7" fill="#333"/><path d="M15 15 L25 15 L20 5 Z" fill="#95a5a6"/></svg>''',
+    "luxury": '''<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="20" width="70" height="35" fill="#F1C40F" rx="5"/><rect x="15" y="25" width="15" height="15" fill="#FFF" rx="2"/><circle cx="20" cy="55" r="6" fill="#000"/><circle cx="60" cy="55" r="6" fill="#000"/></svg>''',
+    "standard": '''<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="20" width="70" height="35" fill="#3498DB" rx="3"/><rect x="15" y="30" width="10" height="10" fill="#ECF0F1"/><circle cx="20" cy="55" r="6" fill="#333"/><circle cx="60" cy="55" r="6" fill="#333"/></svg>''',
+    "basic": '''<svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="25" width="70" height="30" fill="#95A5A6" rx="2"/><circle cx="20" cy="55" r="6" fill="#333"/><circle cx="60" cy="55" r="6" fill="#333"/></svg>'''
+}
