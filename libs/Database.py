@@ -3,27 +3,56 @@ import json
 from datetime import date
 
 class Database:
+    """管理学习火车系统的所有数据"""
     def __init__(self, db_path="study_train.db"):
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self._init_schema()
 
     def _init_schema(self):
+        # 用户表
         self.cursor.execute("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT, role TEXT)")
+        # 任务表
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS tasks 
             (id INTEGER PRIMARY KEY, child_id INTEGER, date TEXT, name TEXT, points INTEGER, status INTEGER, quality TEXT)""")
+        # 积分钱包
         self.cursor.execute("CREATE TABLE IF NOT EXISTS wallet (child_id INTEGER PRIMARY KEY, points INTEGER DEFAULT 0)")
+        # 系统设置表 (用于存储家长密码等)
+        self.cursor.execute("CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)")
+        
+        # 初始化默认数据
         self.cursor.execute("SELECT COUNT(*) FROM users")
         if self.cursor.fetchone()[0] == 0:
             self.cursor.execute("INSERT INTO users (name, role) VALUES ('大宝', 'child'), ('小宝', 'child'), ('家长', 'parent')")
             self.cursor.execute("INSERT INTO wallet (child_id, points) VALUES (1, 0), (2, 0)")
+        
+        # 初始化家长默认密码 (123456)
+        self.cursor.execute("SELECT value FROM settings WHERE key='parent_password'")
+        if not self.cursor.fetchone():
+            self.cursor.execute("INSERT INTO settings VALUES ('parent_password', '123456')")
+            
         self.conn.commit()
 
-    def get_tasks_by_date(self, child_id, date):
-        return self.cursor.execute("SELECT id, name, points, status, quality FROM tasks WHERE child_id=? AND date= ?", (child_id, date)).fetchall()
+    def get_parent_password(self):
+        self.cursor.execute("SELECT value FROM settings WHERE key='parent_password'")
+        res = self.cursor.fetchone()
+        return res[0] if res else "123456"
 
-    def add_task(self, child_id, date, name, pts):
-        self.cursor.execute("INSERT INTO tasks (child_id, date, name, points, status, quality) VALUES (?,?,?,?,0,'basic')", (child_id, date, name, pts))
+    def set_parent_password(self, new_pwd):
+        self.cursor.execute("UPDATE settings SET value=? WHERE key='parent_password'", (new_pwd,))
+        self.conn.commit()
+
+    def get_tasks_by_date(self, child_id, date_str):
+        return self.cursor.execute(
+            "SELECT id, name, points, status, quality FROM tasks WHERE child_id=? AND date=?", 
+            (child_id, date_str)
+        ).fetchall()
+
+    def add_task(self, child_id, date_str, name, pts):
+        self.cursor.execute(
+            "INSERT INTO tasks (child_id, date, name, points, status, quality) VALUES (?,?,?,?,0,'basic')", 
+            (child_id, date_str, name, pts)
+        )
         self.conn.commit()
 
 

@@ -2,82 +2,74 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import Qt
 
 class StartLoginDialog(QDialog):
-    """启动登录：家长或孩子登录"""
+    """支持数据库校验的登录窗口"""
     def __init__(self, db):
         super().__init__()
         self.db = db
-        self.user = None  # ('parent', None) 或 ('child', child_id)
-        self.setWindowTitle('登录')
-        self.setMinimumWidth(360)
+        self.user_info = None  # 存储登录结果 ('parent', None) 或 ('child', child_id)
+        self.setWindowTitle('系统登录')
+        self.setMinimumWidth(380)
+        
         layout = QVBoxLayout()
+        self.tabs = QTabWidget()
 
-        tabs = QTabWidget()
-        # 家长登录
-        p_tab = QWidget()
+        # --- 家长登录页 ---
+        self.parent_tab = QWidget()
         p_layout = QFormLayout()
-        self.parent_user = QLineEdit('admin')
-        self.parent_pwd = QLineEdit('123456')
+        self.parent_pwd = QLineEdit()
+        self.parent_pwd.setPlaceholderText("请输入家长管理密码")
         self.parent_pwd.setEchoMode(QLineEdit.Password)
-        p_layout.addRow('用户名', self.parent_user)
-        p_layout.addRow('密码', self.parent_pwd)
-        p_tab.setLayout(p_layout)
-        tabs.addTab(p_tab, '家长')
+        p_layout.addRow('家长密码:', self.parent_pwd)
+        self.parent_tab.setLayout(p_layout)
 
-        # 孩子登录（和之前 LoginDialog 类似）
-        c_tab = QWidget()
-        c_layout = QVBoxLayout()
-        form = QFormLayout()
-        self.combo = QComboBox()
-        self.mapping = {}
-        for cid, name in self.db.get_children():
-            self.combo.addItem(name, cid)
-            self.mapping[name] = cid
-        form.addRow('孩子', self.combo)
-        self.child_pwd = QLineEdit('123456')
-        self.child_pwd.setEchoMode(QLineEdit.Password)
-        form.addRow('密码', self.child_pwd)
-        c_layout.addLayout(form)
-        c_tab.setLayout(c_layout)
-        tabs.addTab(c_tab, '孩子')
+        # --- 孩子登录页 ---
+        self.child_tab = QWidget()
+        c_layout = QFormLayout()
+        self.child_combo = QComboBox()
+        # 从数据库加载孩子列表 (假设 role='child')
+        self.db.cursor.execute("SELECT id, name FROM users WHERE role='child'")
+        for cid, name in self.db.cursor.fetchall():
+            self.child_combo.addItem(name, cid)
+        
+        c_layout.addRow('选择孩子:', self.child_combo)
+        # 孩子端这里可以根据需要加密码，目前保持简洁
+        self.child_tab.setLayout(c_layout)
 
-        layout.addWidget(tabs)
+        self.tabs.addTab(self.parent_tab, "家长入口")
+        self.tabs.addTab(self.child_tab, "孩子入口")
+        layout.addWidget(self.tabs)
 
         btns = QHBoxLayout()
-        login = QPushButton('登录')
-        login.clicked.connect(lambda: self.try_login(tabs.currentIndex()))
-        cancel = QPushButton('取消')
-        cancel.clicked.connect(self.reject)
-        btns.addWidget(login)
-        btns.addWidget(cancel)
+        self.btn_login = QPushButton("登录")
+        self.btn_login.clicked.connect(self.handle_login)
+        self.btn_cancel = QPushButton("取消")
+        self.btn_cancel.clicked.connect(self.reject)
+        btns.addWidget(self.btn_login)
+        btns.addWidget(self.btn_cancel)
         layout.addLayout(btns)
+
         self.setLayout(layout)
 
-    def try_login(self, tab_index):
-        if tab_index == 0:
-            # parent
-            user = self.parent_user.text().strip()
-            pwd = self.parent_pwd.text()
-            # 简单校验：默认账号 admin / 密码 123456
-            if user == 'admin' and pwd == '123456':
-                self.user = ('parent', None)
+    def handle_login(self):
+        idx = self.tabs.currentIndex()
+        if idx == 0:  # 家长登录
+            input_pwd = self.parent_pwd.text()
+            correct_pwd = self.db.get_parent_password()
+            if input_pwd == correct_pwd:
+                self.user_info = ('parent', None)
                 self.accept()
             else:
-                QMessageBox.warning(self, '登录失败', '用户名或密码错误')
-        else:
-            # child
-            name = self.combo.currentText()
-            if not name:
-                QMessageBox.warning(self, '错误', '没有可用的孩子，请联系家长添加')
-                return
-            cid = self.combo.currentData()
-            pwd = self.child_pwd.text()
-            if self.db.check_password(cid, pwd):
-                self.user = ('child', cid)
+                QMessageBox.warning(self, "错误", "家长密码不正确！")
+        else:  # 孩子登录
+            cid = self.child_combo.currentData()
+            name = self.child_combo.currentText()
+            if cid:
+                self.user_info = ('child', cid)
                 self.accept()
             else:
-                QMessageBox.warning(self, '登录失败', '密码错误或未设置')
+                QMessageBox.warning(self, "错误", "请先添加孩子信息")
 
     def exec_and_get_user(self):
         if self.exec_():
-            return self.user
+            return self.user_info
         return None
