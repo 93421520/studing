@@ -1,6 +1,7 @@
 import sqlite3
 import json
 from datetime import date
+from datetime import datetime
 
 class Database:
     """管理学习火车系统的所有数据"""
@@ -41,18 +42,48 @@ class Database:
     def set_parent_password(self, new_pwd):
         self.cursor.execute("UPDATE settings SET value=? WHERE key='parent_password'", (new_pwd,))
         self.conn.commit()
-
+    def get_today_tasks(self, child_id):
+        """获取指定孩子今日的任务列表"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        return self.cursor.execute(
+            "SELECT id, name, points, status FROM tasks WHERE child_id=? AND date=?", 
+            (child_id, today)
+        ).fetchall()
+    
     def get_tasks_by_date(self, child_id, date_str):
         return self.cursor.execute(
             "SELECT id, name, points, status, quality FROM tasks WHERE child_id=? AND date=?", 
             (child_id, date_str)
         ).fetchall()
-
+    
+    def get_today_tasks(self, child_id):
+        """获取指定孩子今日的任务列表"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        return self.cursor.execute(
+            "SELECT id, name, points, status FROM tasks WHERE child_id=? AND date=?", 
+            (child_id, today)
+        ).fetchall()
+    
     def add_task(self, child_id, date_str, name, pts):
         self.cursor.execute(
             "INSERT INTO tasks (child_id, date, name, points, status, quality) VALUES (?,?,?,?,0,'basic')", 
             (child_id, date_str, name, pts)
         )
+        self.conn.commit()
+    
+    def verify_parent_password(self, input_pwd):
+        """验证家长密码"""
+        self.cursor.execute("SELECT value FROM settings WHERE key='parent_password'")
+        res = self.cursor.fetchone()
+        return res[0] == input_pwd if res else input_pwd == "123456"
+    
+    def update_task_detail(self, task_id, name, pts):
+        """更新任务名称或分值"""
+        self.cursor.execute("UPDATE tasks SET name=?, points=? WHERE id=?", (name, pts, task_id))
+        self.conn.commit()
+    def delete_task(self, task_id):
+        """删除错误发布的任务"""
+        self.cursor.execute("DELETE FROM tasks WHERE id=?", (task_id,))
         self.conn.commit()
 
 
